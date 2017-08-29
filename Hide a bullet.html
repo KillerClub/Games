@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<style>
+		#can{
+			display:block;
+			margin:60px auto;
+			background:#000;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="can" width="500" height="500"></canvas>
+	<script src="js/unit.js"></script>
+	<script>
+		//子弹对象
+		function Bullet(){
+			//让子弹出现在左上角
+			this.x=unit.r(50,100);//坐标
+			this.y=unit.r(50,100);//坐标
+			this.dx=unit.r(1,3);//水平方向速度
+			this.dy=unit.r(1,3);//垂直方向速度
+			this.r=10; //子弹半径
+			this.color = "rgb("+ unit.r(1,255)+","+unit.r(1,255)+","+unit.r(1,255)+")";
+		}
+		Bullet.prototype={//子弹的构造器
+			constructor:Bullet,//构造器属于谁的
+			render:function(){//绘画方法
+				var can =document.getElementById('can');
+				var ctx=can.getContext('2d');
+
+				//ctx.clearRect(0,0,500,500);//全部清除，清除X,Y，宽，高
+				game.ctx.beginPath();//起始一条路径
+				game.ctx.arc(this.x,this.y,this.r,0,2*Math.PI);//圆的中心x，y坐标，圆半径，起始，结束
+				game.ctx.closePath();//关闭路径
+				game.ctx.fillStyle=this.color;//设置颜色
+				game.ctx.fill();//如果路径未关闭，他会从路径结束点到开始点之间添加一条线，以关闭该路径，然后填充该路径
+			},
+			move:function(){
+				if(this.x>500-10||this.x<=0){
+					this.dx=-1*this.dx;//x向反方向移动
+				}
+				if(this.y>500-10||this.y<=0){
+					this.dy=-1*this.dy;//y反方向移动
+				}
+				this.x+=this.dx;
+				this.y+=this.dy;
+
+				//绘制
+				this.render();
+			}		
+		}
+
+		//飞机对象
+		function Plane(){
+			//飞机的位置，在画布中心处
+			this.x=250;//坐标
+			this.y=250;
+
+			this.dx=0;//飞机移动距离
+			this.dy=0;
+
+			this.img=new Image();
+			this.img.src='img/plane2.png';
+
+			this.rotate=0;//给飞机一个角度的属性
+		}
+
+		Plane.prototype={
+			constructor:Plane,
+			render:function(){
+				//game.ctx.drawImage(this.img, this.x,this.y);//向画布绘制图片，x，y表示图片在哪个位置
+
+				game.ctx.save();//保存当前环境的状态
+				game.ctx.translate(this.x,this.y);//把画布中心移到飞机的位置
+				game.ctx.rotate(this.rotate);//旋转当前绘图
+				game.ctx.drawImage(this.img,-16,-16);//给图片设置裁剪
+				game.ctx.restore();//返回之前保存过的路径状态和属性
+			},
+			move:function(){
+				this.x+=this.dx;//飞机移动后的位置				
+				this.y+=this.dy;
+
+				//控制飞机不飞出界面外
+				if(this.x<16){
+					this.x=16;
+				}
+				else if(this.x>500-16){
+					this.x=500-16;//x最大距离
+				}
+
+				if(this.y<16){
+					this.y=16;
+				}
+				else if(this.y>500-16){
+					this.y=500-16;//y的最大距离
+				}
+
+				if(this.dx>0&&this.dy>0){//右下
+					this.rotate=Math.PI*3/4
+				}
+				else if(this.dx>0&&this.dy<0){//右上
+					this.rotate=Math.PI*1/4
+				}
+				else if(this.dx<0&&this.dy>0){//左下
+					this.rotate=Math.PI*5/4
+				}
+				else if(this.dx<0&&this.dy<0){//左上
+					this.rotate=Math.PI*7/4
+				}
+				else if(this.dx==0&&this.dy<0){//上
+					this.rotate=Math.PI=0
+				}
+				else if(this.dx==0&&this.dy>0){//下
+					this.rotate=Math.PI
+				}
+				else if(this.dx<0&&this.dy==0){//左
+					this.rotate=Math.PI*3/2
+				}
+				else if(this.dx>0&&this.dy==0){//右
+					this.rotate=Math.PI*1/2					
+				}
+				this.render();
+			}
+		}
+
+		var game={
+			plane: new Plane(),
+			ctx:document.getElementById('can').getContext('2d'),//画布
+			bulletNumber:20,//子弹数量
+			frameIndex:0,//帧频
+			actor:[],//数组里存放演员
+			addEvent:function(){
+				//给body添加keydown事件
+				var that=this;
+				document.body.addEventListener('keydown',function(e){
+					// console.log(e)
+					if(e.keyCode==38){
+						//飞机向上，y应该是负值，则dy应该一个赋值
+						that.plane.dy=-4;
+						console.log(that.plane.dy);
+					}
+					else if(e.keyCode==40){
+						//向下，y应该是正。dy应该是正的
+						that.plane.dy=4;
+					}
+					else if(e.keyCode==37){
+						//飞机向左，x是负值，dx是负
+						that.plane.dx=-4;
+					}
+					else if(e.keyCode==39){
+						//飞机向右
+						that.plane.dx=4;
+					}
+						
+				});
+
+				//给body添加keyup事件
+				document.body.addEventListener('keyup',function(e){
+					
+					if(e.keyCode==38){
+						//飞机向上，y应该是负值，则dy应该一个赋值
+						that.plane.dy=0;
+					}
+					else if(e.keyCode==40){
+						//向下，y应该是正。dy应该是正的
+						that.plane.dy=0;
+					}
+					else if(e.keyCode==37){
+						//飞机向左，x是负值，dx是负
+						that.plane.dx=0;
+					}
+					else if(e.keyCode==39){
+						//飞机向右
+						that.plane.dx=0;
+					}
+						
+				});				
+			},
+
+			//碰撞检测
+			isOver:function(){
+				var flag=false;//假设没有撞上
+
+				//检查子弹是否撞上了飞机
+				var px=this.plane.x;
+				var py=this.plane.y;//飞机的中心点
+
+				for(var i=0;i<this.actor.length;i++){
+					var t=this.actor[i];
+					if(t.__proto__.constructor===Bullet){//判断是否是子弹
+						var x=t.x;//子弹的坐标
+						var y=t.y;
+
+						if(Math.pow(x-px,2)+Math.pow(y-py,2)<10*10){
+							flag=true;//子弹撞上了飞机
+							break;
+						}
+					}
+				}
+				return flag;
+			},
+
+			updatetime:function(){
+				//在游戏中显示时间
+				this.ctx.textAlign="center";//文字水平居中
+				this.ctx.textBaseline='middle';//文字垂直居中
+				this.ctx.font='20px 微软雅黑';//字体大小
+				var t=this.frameIndex*40/1000;//由于frameIndex是每隔25ms加1，把ms转换为s
+				var t_z=t.toFixed(2);//保留俩位小数
+
+				this.ctx.fillText(t_z+'秒',400,20);//文字坐标，x，y
+			},
+			start:function(){
+				var that=this;//缓存this
+
+				//加载子弹
+				for(var i=0;i<this.bulletNumber;i++){
+					this.actor.push(new Bullet())
+				}
+				this.actor.push(game.plane);//添加飞机对象
+				this.addEvent();
+				this.timer=setInterval(function(){
+					that.frameIndex++;
+					that.ctx.clearRect(0,0,500,500);//全部删除
+					that.updatetime();
+
+					if(that.isOver()==true){
+						clearInterval(that.timer);//清除定时器
+					}
+
+					for(var i=0;i<that.actor.length;i++){
+						that.actor[i].move();//调用演员的move方法
+					}
+				},1000/25);
+			}
+		
+		}
+		game.start();
+
+		// var b1=new Bullet();
+		// setInterval(function(){
+		// 	b1.move()
+		// },1000/25);
+		 
+	</script>
+</body>
+</html>
